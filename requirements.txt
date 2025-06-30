@@ -1,0 +1,4 @@
+pandas
+conllu
+scikit-learn
+datasets
