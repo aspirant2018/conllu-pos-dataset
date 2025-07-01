@@ -1,6 +1,9 @@
 import pandas as pd
 import conllu
- 
+from sklearn.preprocessing import LabelEncoder
+from itertools import chain
+from datasets import Dataset
+
 
 
 class ConlluPosDataset:
@@ -25,8 +28,6 @@ class ConlluPosDataset:
                                 )
         self.all_aligned_tags = align_tags_with_subtokens(self.all_updated_tags,encoded_inputs)
         
-        from sklearn.preprocessing import LabelEncoder
-        from itertools import chain
 
         self.le = LabelEncoder()
         self.le.fit(list(chain.from_iterable(self.all_aligned_tags)))
@@ -125,7 +126,6 @@ class ConlluPosDataset:
         else:
             return self.le.transform(self.all_aligned_tags[index])
 
-    from datasets import Dataset
     
     def create_dataset(all_aligned_tags, encoded_inputs):
         """
