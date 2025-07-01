@@ -1,12 +1,13 @@
 import pandas as pd
 import conllu
-from sklearn.preprocessing import LabelEncoder
-from itertools import chain
 from datasets import Dataset
 
 
 
 class ConlluPosDataset:
+    
+
+        
     def __init__(self, filename: str,tokenizer=None):
         
         if tokenizer is None:
@@ -19,21 +20,23 @@ class ConlluPosDataset:
         self.df = self._conllu2df(self.corpus)
         self.all_updated_tokens, self.all_updated_tags = self._update_all_tags_tokens(self.df)
         
-        encoded_inputs = tokenizer(self.all_updated_tokens,
+        self.encoded_inputs = tokenizer(self.all_updated_tokens,
                                     is_split_into_words=True,
                                     return_offsets_mapping=True,
                                     padding=True,
                                     truncation=True,
                                     add_special_tokens=False,
                                 )
-        self.all_aligned_tags = align_tags_with_subtokens(self.all_updated_tags,encoded_inputs)
+        self.all_aligned_tags = self.align_tags_with_subtokens(self.all_updated_tags,self.encoded_inputs)
         
+        from sklearn.preprocessing import LabelEncoder
+        from itertools import chain
 
         self.le = LabelEncoder()
         self.le.fit(list(chain.from_iterable(self.all_aligned_tags)))
 
 
-        self.dataset = create_dataset(self.all_aligned_tags, encoded_inputs)
+        self.dataset = self.create_dataset(self.all_aligned_tags, self.encoded_inputs)
 
         
 
@@ -83,7 +86,7 @@ class ConlluPosDataset:
         return all_updated_tokens, all_updated_tags
 
 
-    def align_tags(tags: list[str], offset_mapping: list[tuple[int, int]]) -> list[str]:
+    def align_tags(self,tags: list[str], offset_mapping: list[tuple[int, int]]) -> list[str]:
         """
         Aligns word-level tags with subword tokens using offset mapping.
     
@@ -111,12 +114,12 @@ class ConlluPosDataset:
     
         return aligned_tags
 
-    def align_tags_with_subtokens(all_updated_tags,encoded_inputs):
+    def align_tags_with_subtokens(self,all_updated_tags,encoded_inputs):
         all_aligned_tags = []
         for index in range(len(all_updated_tags)):
             tags = all_updated_tags[index]
             offset_mapping = encoded_inputs['offset_mapping'][index]
-            aligned_tags   = align_tags(tags,offset_mapping)
+            aligned_tags   = self.align_tags(tags,offset_mapping)
             all_aligned_tags.append(aligned_tags)
         return all_aligned_tags
 
@@ -127,7 +130,7 @@ class ConlluPosDataset:
             return self.le.transform(self.all_aligned_tags[index])
 
     
-    def create_dataset(all_aligned_tags, encoded_inputs):
+    def create_dataset(self,all_aligned_tags, encoded_inputs):
         """
         Create a Hugging Face Dataset from aligned tags and tokenized inputs.
     
@@ -157,6 +160,8 @@ class ConlluPosDataset:
     def get_dataset(self):
         return self.dataset
 
+    def number_of_classes(self):
+        return len(self.le.classes_)
     
 
 
