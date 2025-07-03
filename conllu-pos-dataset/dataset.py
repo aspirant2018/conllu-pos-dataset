@@ -8,7 +8,6 @@ import conllu
 
 
 class ConlluPosDataset:
-    print('my class')
 
     shared_label_encoder = None  # Class attribute
 
@@ -22,9 +21,9 @@ class ConlluPosDataset:
         if not isinstance(filename,str):
             raise ValueError("Please provide a valide filename")
             
-        self.corpus = list(self._load_conllu(filename))
-        self.df = self._conllu2df(self.corpus)
-        self.all_updated_tokens, self.all_updated_tags = self._update_all_tags_tokens(self.df)
+        corpus = list(self._load_conllu(filename))
+        df = self._conllu2df(corpus)
+        self.all_updated_tokens, self.all_updated_tags = self._update_all_tags_tokens(df)
         
         self.encoded_inputs = tokenizer(
             self.all_updated_tokens,
@@ -43,7 +42,6 @@ class ConlluPosDataset:
             le.fit(list(chain.from_iterable(self.all_aligned_tags)))
             ConlluPosDataset.shared_label_encoder = le
             
-        self.dataset = self.create_dataset(self.all_aligned_tags, self.encoded_inputs)
 
         
 
@@ -146,17 +144,15 @@ class ConlluPosDataset:
             return ConlluPosDataset.shared_label_encoder.transform(self.all_aligned_tags[index])
 
     
-    def create_dataset(self,all_aligned_tags, encoded_inputs):
+    def build_dataset(self):
         """
         Create a Hugging Face Dataset from aligned tags and tokenized inputs.
-    
-        Parameters:
-            all_aligned_tags (list[list[str]]): The aligned tags per example.
-            encoded_inputs (dict): Tokenizer output with 'input_ids' and 'attention_mask'.
-    
+        
         Returns:
             datasets.Dataset: A Hugging Face dataset with input_ids, attention_mask, and labels.
         """
+
+
         data = [
             {
                 "input_ids": input_ids,
@@ -164,9 +160,9 @@ class ConlluPosDataset:
                 "labels": [-100 if tag == ConlluPosDataset.shared_label_encoder.transform(["<pad>"]).item() else tag for tag in ConlluPosDataset.shared_label_encoder.transform(tags).tolist()]
             }
             for input_ids, attention_mask, tags in zip(
-                encoded_inputs["input_ids"],
-                encoded_inputs["attention_mask"],
-                all_aligned_tags
+                self.encoded_inputs["input_ids"],
+                self.encoded_inputs["attention_mask"],
+                self.all_aligned_tags
             )
         ]
     
@@ -175,9 +171,4 @@ class ConlluPosDataset:
 
     def number_of_classes(self):
         return len(ConlluPosDataset.shared_label_encoder.classes_)
-        
-    def build_dataset(self):
-        return self.dataset
-    
-
 
