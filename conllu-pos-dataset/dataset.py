@@ -1,13 +1,19 @@
+from sklearn.preprocessing import LabelEncoder
+from itertools import chain
+
+from datasets import Dataset
 import pandas as pd
 import conllu
-from datasets import Dataset
 
 
 
 class ConlluPosDataset:
-    
+    print('my class')
 
-        
+    shared_label_encoder = None  # Class attribute
+
+
+    
     def __init__(self, filename: str,tokenizer=None):
         
         if tokenizer is None:
@@ -20,33 +26,40 @@ class ConlluPosDataset:
         self.df = self._conllu2df(self.corpus)
         self.all_updated_tokens, self.all_updated_tags = self._update_all_tags_tokens(self.df)
         
-        self.encoded_inputs = tokenizer(self.all_updated_tokens,
-                                    is_split_into_words=True,
-                                    return_offsets_mapping=True,
-                                    padding=True,
-                                    truncation=True,
-                                    add_special_tokens=False,
-                                )
+        self.encoded_inputs = tokenizer(
+            self.all_updated_tokens,
+            is_split_into_words=True,
+            return_offsets_mapping=True,
+            padding=True,
+            truncation=True,
+            add_special_tokens=False,
+        )
         self.all_aligned_tags = self.align_tags_with_subtokens(self.all_updated_tags,self.encoded_inputs)
         
-        from sklearn.preprocessing import LabelEncoder
-        from itertools import chain
 
-        self.le = LabelEncoder()
-        self.le.fit(list(chain.from_iterable(self.all_aligned_tags)))
-
-
+        if ConlluPosDataset.shared_label_encoder is None:
+            print('first Fitting')
+            le = LabelEncoder()
+            le.fit(list(chain.from_iterable(self.all_aligned_tags)))
+            ConlluPosDataset.shared_label_encoder = le
+            
         self.dataset = self.create_dataset(self.all_aligned_tags, self.encoded_inputs)
 
         
 
     def _load_conllu(self, filename):
+        """
+        description
+        """
         for sentence in conllu.parse(open(filename, "rt", encoding="utf-8").read()):
             tokenized_words = [token["form"] for token in sentence]
             gold_tags = [token["upos"] for token in sentence]
             yield tokenized_words, gold_tags        
 
     def _conllu2df(self, corpus: list) -> pd.DataFrame:
+        """
+        description
+        """
         df = pd.DataFrame(corpus, columns=["Words", "Tags"])
         df["SentenceID"] = df.index
         df = df.explode(["Words", "Tags"], ignore_index=True)
@@ -56,6 +69,9 @@ class ConlluPosDataset:
         return df
 
     def _update_UD_tokenization(self, tokens, tags):
+        """
+        description
+        """
         updated_tokens = []
         updated_tags = []
         i = 0
@@ -127,7 +143,7 @@ class ConlluPosDataset:
         if not integer_labels:
             return self.all_aligned_tags[index]
         else:
-            return self.le.transform(self.all_aligned_tags[index])
+            return ConlluPosDataset.shared_label_encoder.transform(self.all_aligned_tags[index])
 
     
     def create_dataset(self,all_aligned_tags, encoded_inputs):
@@ -145,7 +161,7 @@ class ConlluPosDataset:
             {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
-                "labels": [-100 if tag == self.le.transform(["<pad>"]).item() else tag for tag in self.le.transform(tags).tolist()]
+                "labels": [-100 if tag == ConlluPosDataset.shared_label_encoder.transform(["<pad>"]).item() else tag for tag in ConlluPosDataset.shared_label_encoder.transform(tags).tolist()]
             }
             for input_ids, attention_mask, tags in zip(
                 encoded_inputs["input_ids"],
@@ -157,11 +173,11 @@ class ConlluPosDataset:
         return Dataset.from_list(data)
 
 
-    def get_dataset(self):
-        return self.dataset
-
     def number_of_classes(self):
-        return len(self.le.classes_)
+        return len(ConlluPosDataset.shared_label_encoder.classes_)
+        
+    def build_dataset(self):
+        return self.dataset
     
 
 
