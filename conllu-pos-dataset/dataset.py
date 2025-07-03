@@ -45,11 +45,22 @@ class ConlluPosDataset:
 
         
 
-    def _load_conllu(self, filename):
+    def _load_conllu(self, filename:str):
         """
-        description
+        Loads a CoNLL-U formatted file and extracts tokens and their UPOS tags.
+    
+        Args:
+            filename (str): Path to the CoNLL-U file.
+    
+        Yields:
+            tuple: A pair (tokens, tags), where:
+                - tokens (list[str]): List of word forms in the sentence.
+                - tags (list[str]): List of corresponding UPOS tags.
         """
-        for sentence in conllu.parse(open(filename, "rt", encoding="utf-8").read()):
+        with open(filename, "r", encoding="utf-8") as f:
+            sentences = conllu.parse(f.read())
+            
+        for sentence in sentences:
             tokenized_words = [token["form"] for token in sentence]
             gold_tags = [token["upos"] for token in sentence]
             yield tokenized_words, gold_tags        
@@ -151,7 +162,6 @@ class ConlluPosDataset:
         Returns:
             datasets.Dataset: A Hugging Face dataset with input_ids, attention_mask, and labels.
         """
-
 
         data = [
             {
