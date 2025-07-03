@@ -9,6 +9,37 @@ import conllu
 
 class ConlluPosDataset:
 
+    """
+    A dataset class for converting CoNLL-U formatted part-of-speech (PoS) tagging data
+    into a tokenized and aligned format suitable for training transformer-based models.
+
+    This class performs the following steps:
+    - Parses a CoNLL-U file to extract tokens and UPOS tags.
+    - Updates token and tag sequences to handle UD-specific notations (e.g., '_' and merged tags).
+    - Tokenizes sentences using a provided tokenizer.
+    - Aligns word-level tags with subword tokenization using offset mappings.
+    - Encodes the tags using a shared LabelEncoder across instances.
+    - Provides utility methods to retrieve label encodings and to convert the processed data 
+      into a Hugging Face `datasets.Dataset` object.
+
+    Attributes:
+        all_updated_tokens (list[list[str]]): Cleaned and updated token sequences.
+        all_updated_tags (list[list[str]]): Corresponding UPOS tag sequences.
+        encoded_inputs (dict): Tokenizer output containing input_ids and offset mappings.
+        all_aligned_tags (list[list[str]]): Tags aligned to subword tokens.
+        shared_label_encoder (LabelEncoder): Class-level label encoder shared across instances.
+
+    Methods:
+        get_labels_by_index(index, integer_labels=False):
+            Returns the aligned tags for a specific sentence, optionally as integer labels.
+
+        build_dataset():
+            Builds a Hugging Face `Dataset` object with input_ids, attention_mask, and aligned labels.
+
+        number_of_classes():
+            Returns the total number of unique tags (classes) encoded by the LabelEncoder.
+    """
+
     shared_label_encoder = None  # Class attribute
 
 
@@ -163,6 +194,8 @@ class ConlluPosDataset:
             datasets.Dataset: A Hugging Face dataset with input_ids, attention_mask, and labels.
         """
 
+        #self.all_aligned_tags
+        #self.encoded_inputs
         data = [
             {
                 "input_ids": input_ids,
