@@ -194,8 +194,6 @@ class ConlluPosDataset:
             datasets.Dataset: A Hugging Face dataset with input_ids, attention_mask, and labels.
         """
 
-        #self.all_aligned_tags
-        #self.encoded_inputs
         data = [
             {
                 "input_ids": input_ids,
