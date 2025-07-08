@@ -41,10 +41,10 @@ class ConlluPosDataset:
     """
 
     shared_label_encoder = None  # Class attribute
+    language = None
 
 
-    
-    def __init__(self, filename: str,tokenizer=None):
+    def __init__(self, filename: str,tokenizer=None, LabelEncoder=None,language=None):
         
         if tokenizer is None:
             raise ValueError("Please provide a tokenizer")
@@ -67,11 +67,12 @@ class ConlluPosDataset:
         self.all_aligned_tags = self.align_tags_with_subtokens(self.all_updated_tags,self.encoded_inputs)
         
 
-        if ConlluPosDataset.shared_label_encoder is None:
+        if (ConlluPosDataset.shared_label_encoder is None) or (language != ConlluPosDataset.language) :
             print('first Fitting')
-            le = LabelEncoder()
-            le.fit(list(chain.from_iterable(self.all_aligned_tags)))
-            ConlluPosDataset.shared_label_encoder = le
+            
+            LabelEncoder.fit(list(chain.from_iterable(self.all_aligned_tags)))
+            ConlluPosDataset.shared_label_encoder = LabelEncoder
+            ConlluPosDataset.language = language
             
 
         
@@ -194,6 +195,8 @@ class ConlluPosDataset:
             datasets.Dataset: A Hugging Face dataset with input_ids, attention_mask, and labels.
         """
 
+        #self.all_aligned_tags
+        #self.encoded_inputs
         data = [
             {
                 "input_ids": input_ids,
@@ -213,3 +216,6 @@ class ConlluPosDataset:
     def number_of_classes(self):
         return len(ConlluPosDataset.shared_label_encoder.classes_)
 
+    @property
+    def labels(self):
+        return self.all_aligned_tags
